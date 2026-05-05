@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import Sidebar from "../Components/Sidebar";
 import SummaryCard from "../Components/SummaryCard";
 import IncidentsTable from "../Components/IncidentsTable";

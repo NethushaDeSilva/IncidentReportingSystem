@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function RegisterPage() {
   return (
@@ -50,7 +50,7 @@ export default function RegisterPage() {
               Create Account
             </button>
             <p className="mt-6 text-center text-sm text-slate-600">
-              Already have an account? <a href="/login" className="font-bold text-blue-600 hover:text-blue-700">Log In</a>
+              Already have an account? <Link to="/" className="font-bold text-blue-600 hover:text-blue-700">Log In</Link>
             </p>
           </div>
         </form>

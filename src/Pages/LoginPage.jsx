@@ -1,55 +1,123 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const navigate = useNavigate();
+
+  function handleChange(e) {
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    // TEMP LOGIN LOGIC (replace with Firebase later)
+    if (form.email === "admin@gmail.com") {
+      navigate("/admin");
+    } else {
+      navigate("/reporter");
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-10 border border-slate-100">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-200">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Welcome Back</h1>
-          <p className="text-slate-500 mt-2">Login to manage your reports</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
 
-        <form className="space-y-6">
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+          Login
+        </h2>
+
+        {/* Form */}
+        <form onSubmit={function handleSubmit(e) {
+          e.preventDefault();
+
+          let role = "";
+
+          if (form.email === "admin@gmail.com") {
+            role = "admin";
+            localStorage.setItem("role", role);
+            navigate("/admin");
+
+          } else if (form.email === "dispatcher@gmail.com") {
+            role = "dispatcher";
+            localStorage.setItem("role", role);
+            navigate("/dispatcher");
+
+          } else {
+            role = "reporter";
+            localStorage.setItem("role", role);
+            navigate("/reporter");
+          }
+        }} className="space-y-4">
+
+          {/* Email */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
+            <label className="block text-sm text-gray-600 mb-1">
+              Email
+            </label>
             <input
-              type="text"
-              className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 focus:border-blue-500 focus:ring-blue-500 transition-all outline-none border"
-              placeholder="Enter your username"
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your email"
             />
           </div>
 
+          {/* Password */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-semibold text-slate-700">Password</label>
-              <a href="/forgot-password" title="Go to Forgot Password" className="text-xs font-semibold text-blue-600 hover:text-blue-700">Forgot Password?</a>
-            </div>
+            <label className="block text-sm text-gray-600 mb-1">
+              Password
+            </label>
             <input
               type="password"
-              className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 focus:border-blue-500 focus:ring-blue-500 transition-all outline-none border"
-              placeholder="••••••••"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your password"
             />
           </div>
 
+          {/* 🔥 Forgot Password Link */}
+          <div className="text-right">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
+          {/* Login Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
           >
-            Sign In
+            Login
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-slate-600">
-          Don't have an account?{" "}
-          <a href="/register" title="Create a new account" className="font-bold text-blue-600 hover:text-blue-700">Create one now</a>
-        </div>
+        {/* Register Link */}
+        <p className="text-sm text-center text-gray-600 mt-4">
+          Don’t have an account?{" "}
+          <Link to="/register" className="text-blue-600 hover:underline">
+            Register
+          </Link>
+        </p>
+
       </div>
     </div>
   );

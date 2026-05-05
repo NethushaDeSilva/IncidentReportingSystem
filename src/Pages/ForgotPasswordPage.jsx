@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function ForgotPasswordPage() {
-  const [step, setStep] = useState(1);
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -40,7 +39,7 @@ export default function ForgotPasswordPage() {
           </button>
 
           <p className="text-center">
-            <a href="/login" className="text-sm font-bold text-slate-400 hover:text-slate-600">Back to Login</a>
+            <Link to="/" className="text-sm font-bold text-slate-400 hover:text-slate-600">Back to Login</Link>
           </p>
         </form>
       </div>
