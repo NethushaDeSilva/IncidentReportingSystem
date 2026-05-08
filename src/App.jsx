@@ -28,8 +28,10 @@ import AddUser from "./Pages/AddUser";
 import DispatcherDashboard from "./Pages/DispatcherDashboard";
 import AssignIncidents from "./Pages/AssignIncidents";
 import AllIncidents from "./Pages/AllIncidents";
+import ProtectedRoute from "./Components/ProtectedRoute";
 
 export default function App() {
+  const role = "admin";
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
@@ -44,6 +46,11 @@ export default function App() {
       <Route path="/dispatcher" element={<DispatcherDashboard />} />
       <Route path="/dispatcher/assign" element={<AssignIncidents />} />
       <Route path="/dispatcher/all" element={<AllIncidents />} />
+      <Route path="/admin" element={<ProtectedRoute allowedRole="admin" userRole={role}>
+        <AdminDashboard />
+      </ProtectedRoute>
+      }
+      />
 
     </Routes>
   );

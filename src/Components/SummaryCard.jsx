@@ -12,13 +12,15 @@ export default function SummaryCard({ title, value, color }) {
       <p className="text-sm font-bold uppercase tracking-wider opacity-80">{title}</p>
       <p className="text-4xl font-black mt-2">{value}</p>
     </div>
+
+
   );
 }
 
-// Simple explanation of the above code: 
-// 1)This is a React functional component called SummaryCard. 
-// 2)It takes in two props: title and value. 
-// 3)The component returns a styled card that displays the title and value. 
-// 4)The card has a white background, rounded corners, a shadow effect, and a border. 
-// 5)The title is displayed in smaller, gray text, while the value is displayed in larger, bold text. 
+// Simple explanation of the above code:
+// 1)This is a React functional component called SummaryCard.
+// 2)It takes in two props: title and value.
+// 3)The component returns a styled card that displays the title and value.
+// 4)The card has a white background, rounded corners, a shadow effect, and a border.
+// 5)The title is displayed in smaller, gray text, while the value is displayed in larger, bold text.
 // 6)The card also has padding for spacing.

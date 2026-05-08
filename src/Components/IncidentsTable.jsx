@@ -1,77 +1,187 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
 
-export default function IncidentTable() {
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+
+import { db, auth } from "../firebase";
+
+export default function IncidentsTable() {
+
+  // Store incidents fetched from Firebase
   const [incidents, setIncidents] = useState([]);
+
+  // Loading state
   const [loading, setLoading] = useState(true);
 
-
+  // Runs automatically when component loads
   useEffect(() => {
+
+    // Function to fetch incidents
     async function fetchIncidents() {
+
       try {
-        const querySnapshot = await getDocs(collection(db, "Incidents"));
+
+        const currentUser = auth.currentUser;
+
+        // IMPORTANT
+        if (!currentUser) {
+          console.log("No authenticated user");
+          return;
+        }
+
+        console.log("Logged user:", currentUser.uid);
+
+        const q = query(
+          collection(db, "Incidents"),
+          where("reporterId", "==", currentUser.uid)
+        );
+
+        const querySnapshot = await getDocs(q);
 
         const incidentList = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
+        console.log(incidentList);
+
         setIncidents(incidentList);
+
       } catch (error) {
-        console.error("Error fetching incidents:", error);
+
+        console.error(
+          "Error fetching incidents:",
+          error
+        );
+
       } finally {
+
+        // Stop loading whether success or error
         setLoading(false);
       }
     }
 
+    // Call function
     fetchIncidents();
+
   }, []);
 
+  // Show loading message
   if (loading) {
-    return <p className="text-gray-500">Loading incidents...</p>;
+    return (
+      <p className="text-gray-500">
+        Loading incidents...
+      </p>
+    );
+  }
+
+  // Show empty state if no incidents
+  if (incidents.length === 0) {
+    return (
+      <p className="text-gray-500">
+        No incidents found
+      </p>
+    );
   }
 
   return (
+
     <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+
       <table className="w-full text-left text-sm">
+
+        {/* Table Header */}
         <thead className="bg-gray-100 text-gray-700">
           <tr>
-            <th className="px-4 py-3">Incident ID</th>
-            <th className="px-4 py-3">Incident Type</th>
-            <th className="px-4 py-3">Date reported</th>
-            <th className="px-4 py-3">Location</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Assigned Unit</th>
-          </tr>
+            <th className="px-4 py-3">
+              Incident ID
+            </th>
 
+            <th className="px-4 py-3">
+              Incident Type
+            </th>
+
+            <th className="px-4 py-3">
+              Date Reported
+            </th>
+
+            <th className="px-4 py-3">
+              Location
+            </th>
+
+            <th className="px-4 py-3">
+              Status
+            </th>
+
+            <th className="px-4 py-3">
+              Assigned Unit
+            </th>
+          </tr>
         </thead>
 
+        {/* Table Body */}
         <tbody>
+
           {incidents.map((incident) => (
-            console.log(incident),
-            <tr key={incident.id} className="border-t">
-              <td className="px-4 py-3 font-medium">{incident.incidentId}</td>
-              <td className="px-4 py-3">{incident.type}</td>
-              <td className="px-4 py-3">{incident.date}</td>
-              <td className="px-4 py-3">{incident.location}</td>
-              <td className="px-4 py-3">{incident.status}</td>
-              <td className="px-4 py-3">{incident.assigned || "Not assigned"}</td>
+
+            <tr
+              key={incident.id}
+              className="border-t hover:bg-gray-50"
+            >
+
+              {/* Incident ID */}
+              <td className="px-4 py-3 font-medium">
+                {incident.id}
+              </td>
+
+              {/* Incident Type */}
+              <td className="px-4 py-3">
+                {incident.type || "N/A"}
+              </td>
+
+              {/* Date */}
+              <td className="px-4 py-3">
+                {incident.date || "N/A"}
+              </td>
+
+              {/* Location */}
+              <td className="px-4 py-3">
+                {incident.location || "N/A"}
+              </td>
+
+              {/* Status */}
+              <td className="px-4 py-3">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-semibold
+                    ${incident.status === "Resolved"
+                      ? "bg-green-100 text-green-700"
+                      : incident.status === "Pending"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-red-100 text-red-700"
+                    }
+                  `}
+                >
+                  {incident.status || "Pending"}
+                </span>
+              </td>
+
+              {/* Assigned Unit */}
+              <td className="px-4 py-3">
+                {incident.assigned || "Not Assigned"}
+              </td>
 
             </tr>
-          )
-          )}
+
+          ))}
+
         </tbody>
+
       </table>
+
     </div>
   );
 }
-
-// Explanation of the above code:
-// 1) This is a React functional component called IncidentTable.
-// 2) It uses the useState hook to manage the state of incidents and loading.
-// 3) The useEffect hook is used to fetch incident data from Firestore when the component mounts.
-// 4) The getDocs function retrieves documents from the "incidents" collection in Firestore.
-// 5) The retrieved data is stored in the incidents state variable, and loading is set to false once the data is fetched.
-// 6) If loading is true, a loading message is displayed. Otherwise, a table of incidents is rendered.
-// 7) The table displays various details about each incident, such as ID, type, date, location, status, and assigned unit.
