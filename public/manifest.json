@@ -1,0 +1,31 @@
+{
+  "name": "Health LINK Incident Reporting",
+  "short_name": "Health LINK",
+  "description": "A responsive incident reporting and response coordination PWA.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#DEDED8",
+  "theme_color": "#3D4461",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/healthlink-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/healthlink-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/healthlink-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
