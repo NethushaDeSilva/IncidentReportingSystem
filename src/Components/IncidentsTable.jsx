@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   collection,
@@ -10,6 +11,7 @@ import {
 import { db, auth } from "../firebase";
 
 export default function IncidentsTable() {
+  const navigate = useNavigate();
 
   // Store incidents fetched from Firebase
   const [incidents, setIncidents] = useState([]);
@@ -27,9 +29,9 @@ export default function IncidentsTable() {
 
         const currentUser = auth.currentUser;
 
-        // IMPORTANT
         if (!currentUser) {
           console.log("No authenticated user");
+          setLoading(false);
           return;
         }
 
@@ -120,6 +122,10 @@ export default function IncidentsTable() {
             <th className="px-4 py-3">
               Assigned Unit
             </th>
+
+            <th className="px-4 py-3">
+              View
+            </th>
           </tr>
         </thead>
 
@@ -159,19 +165,29 @@ export default function IncidentsTable() {
                   className={`px-2 py-1 rounded text-xs font-semibold
                     ${incident.status === "Resolved"
                       ? "bg-green-100 text-green-700"
-                      : incident.status === "Pending"
+                      : incident.status === "notAssigned"
                         ? "bg-yellow-100 text-yellow-700"
                         : "bg-red-100 text-red-700"
                     }
                   `}
                 >
-                  {incident.status || "Pending"}
+                  {incident.status || "notAssigned"}
                 </span>
               </td>
 
               {/* Assigned Unit */}
               <td className="px-4 py-3">
-                {incident.assigned || "Not Assigned"}
+                {incident.assigned || "notAssigned"}
+              </td>
+
+              {/* View */}
+              <td className="px-4 py-3">
+                <button
+                  onClick={() => navigate(`/incident/${incident.id}`)}
+                  className="rounded-lg bg-slate-700 px-3 py-2 text-white hover:bg-slate-800"
+                >
+                  VIEW
+                </button>
               </td>
 
             </tr>
