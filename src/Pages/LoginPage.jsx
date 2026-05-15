@@ -1,301 +1,141 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { Eye, EyeOff, LogIn } from "lucide-react";
+import { useApp } from "../Context/AppContextBase";
+import { normalizeRole } from "../utils/roles";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
-
+  const { appConfig, authLoading, login, role, user } = useApp();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Handle input changes
-  function handleChange(e) {
-    setForm((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+  useEffect(() => {
+    if (!authLoading && user && role) navigate(`/${normalizeRole(role)}`, { replace: true });
+  }, [authLoading, navigate, role, user]);
+
+  function handleChange(event) {
+    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   }
 
-  // Handle login
-  async function handleLogin(e) {
-    e.preventDefault();
-
+  async function handleLogin(event) {
+    event.preventDefault();
     setLoading(true);
     setErrorMsg("");
 
     try {
-      // Firebase Authentication login
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        form.email,
-        form.password
-      );
-
-      const user = userCredential.user;
-
-      // Get role from Firestore
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-
-        // Role-based navigation
-        if (userData.role === "admin") {
-          navigate("/admin");
-
-        } else if (userData.role === "dispatcher") {
-          navigate("/dispatcher");
-
-        } else if (userData.role === "reporter") {
-          navigate("/reporter");
-
-        } else {
-          setErrorMsg("Invalid user role");
-        }
-
-      } else {
-        setErrorMsg("User data not found");
-      }
-
+      const profile = await login(form.email.trim(), form.password);
+      navigate(`/${normalizeRole(profile.role)}`, { replace: true });
     } catch (error) {
-      console.error(error);
-      setErrorMsg("Invalid email or password");
+      setErrorMsg(error.code === "auth/invalid-credential" ? "Invalid email or password." : error.message);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-
-      {/* Login Card */}
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-
-        {/* Header */}
-        <div className="bg-blue-700 text-white text-center py-8 px-6">
-          <h1 className="text-3xl font-bold tracking-wide">
-            Health LINK
+    <div className="grid min-h-screen bg-[#DEDED8] text-slate-800 dark:bg-slate-950 dark:text-slate-100 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="flex min-h-[36vh] flex-col justify-between bg-[#3D4461] p-6 text-white sm:p-10 lg:min-h-screen">
+        <div className="w-fit rounded-lg bg-white/10 px-4 py-2 text-sm font-black uppercase tracking-[0.18em]">
+          PWA
+        </div>
+        <div className="max-w-xl py-12">
+          <h1 className="text-5xl font-black tracking-tight sm:text-6xl lg:text-7xl">
+            {appConfig.brand.name}
           </h1>
-
-          <p className="text-blue-100 mt-2 text-sm">
-            Incident Reporting & Emergency Coordination System
+          <p className="mt-5 max-w-md text-base font-semibold leading-7 text-slate-200">
+            {appConfig.brand.tagline}
           </p>
         </div>
+        <div className="grid gap-3 text-sm font-semibold text-slate-200 sm:grid-cols-2">
+          <span>Emergency {appConfig.brand.emergencyPhone}</span>
+          <span>Support {appConfig.brand.supportPhone}</span>
+        </div>
+      </section>
 
-        {/* Form Section */}
-        <div className="p-8">
+      <main className="flex items-center justify-center px-4 py-10 sm:px-8">
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-[#5F675C] dark:text-slate-400">
+              Secure access
+            </p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Login</h2>
+          </div>
 
-          <h2 className="text-2xl font-bold text-slate-800 text-center mb-6">
-            Login
-          </h2>
-
-          {/* Error Message */}
-          {errorMsg && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-              {errorMsg}
-            </div>
-          )}
-
-          {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-5">
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email Address
-              </label>
-
+            <label className="block">
+              <span className="mb-2 block text-sm font-black text-slate-700 dark:text-slate-200">
+                Username
+              </span>
               <input
                 type="email"
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="Enter your email"
+                placeholder="email@example.com"
+                autoComplete="email"
                 required
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="field-input"
               />
-            </div>
+            </label>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-black text-slate-700 dark:text-slate-200">
                 Password
-              </label>
+              </span>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Enter password"
+                  autoComplete="current-password"
+                  required
+                  className="field-input pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </label>
 
-              <input
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                required
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            {errorMsg && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
+                {errorMsg}
+              </div>
+            )}
 
-            {/* Forgot Password */}
-            <div className="text-right">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Forgot Password?
-              </Link>
-            </div>
-
-            {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition duration-200 disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#3D4461] px-6 py-3 font-black text-white shadow-lg transition hover:bg-[#30364f] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Logging in..." : "Login"}
+              <LogIn size={18} />
+              {loading ? "Checking..." : "LOGIN"}
             </button>
-
           </form>
 
-          {/* Register Link */}
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Don’t have an account?{" "}
-            <Link
-              to="/register"
-              className="text-blue-600 font-medium hover:underline"
-            >
-              Register
+          <div className="mt-6 flex flex-col gap-3 text-sm font-bold sm:flex-row sm:items-center sm:justify-between">
+            <Link to="/forgot-password" className="text-[#3D4461] hover:underline dark:text-slate-100">
+              Forgot Password
             </Link>
-          </p>
-
+            <span className="text-slate-600 dark:text-slate-400">
+              Create a new account?{" "}
+              <Link to="/register" className="text-[#3D4461] hover:underline dark:text-white">
+                Sign up
+              </Link>
+            </span>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
-
-// export default function LoginPage() {
-//   const [form, setForm] = useState({
-//     email: "",
-//     password: "",
-//   });
-
-//   const navigate = useNavigate();
-
-//   function handleChange(e) {
-//     setForm((prev) => ({
-//       ...prev,
-//       [e.target.name]: e.target.value,
-//     }));
-//   }
-
-//   function handleSubmit(e) {
-//     e.preventDefault();
-
-//     // TEMP LOGIN LOGIC (replace with Firebase later)
-//     if (form.email === "admin@gmail.com") {
-//       navigate("/admin");
-//     } else {
-//       navigate("/reporter");
-//     }
-//   }
-
-//   return (
-//     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-//       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-
-//         {/* Title */}
-//         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-//           Login
-//         </h2>
-
-//         {/* Form */}
-//         <form onSubmit={function handleSubmit(e) {
-//           e.preventDefault();
-
-//           let role = "";
-
-//           if (form.email === "admin@gmail.com") {
-//             role = "admin";
-//             localStorage.setItem("role", role);
-//             navigate("/admin");
-
-//           } else if (form.email === "dispatcher@gmail.com") {
-//             role = "dispatcher";
-//             localStorage.setItem("role", role);
-//             navigate("/dispatcher");
-
-//           } else {
-//             role = "reporter";
-//             localStorage.setItem("role", role);
-//             navigate("/reporter");
-//           }
-//         }} className="space-y-4">
-
-//           {/* Email */}
-//           <div>
-//             <label className="block text-sm text-gray-600 mb-1">
-//               Email
-//             </label>
-//             <input
-//               type="email"
-//               name="email"
-//               value={form.email}
-//               onChange={handleChange}
-//               required
-//               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-//               placeholder="Enter your email"
-//             />
-//           </div>
-
-//           {/* Password */}
-//           <div>
-//             <label className="block text-sm text-gray-600 mb-1">
-//               Password
-//             </label>
-//             <input
-//               type="password"
-//               name="password"
-//               value={form.password}
-//               onChange={handleChange}
-//               required
-//               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-//               placeholder="Enter your password"
-//             />
-//           </div>
-
-//           {/* 🔥 Forgot Password Link */}
-//           <div className="text-right">
-//             <Link
-//               to="/forgot-password"
-//               className="text-sm text-blue-600 hover:underline"
-//             >
-//               Forgot Password?
-//             </Link>
-//           </div>
-
-//           {/* Login Button */}
-//           <button
-//             type="submit"
-//             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-//           >
-//             Login
-//           </button>
-//         </form>
-
-//         {/* Register Link */}
-//         <p className="text-sm text-center text-gray-600 mt-4">
-//           Don’t have an account?{" "}
-//           <Link to="/register" className="text-blue-600 hover:underline">
-//             Register
-//           </Link>
-//         </p>
-
-//       </div>
-//     </div>
-//   );
-// }

@@ -1,47 +1,89 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { MailCheck } from "lucide-react";
+import { useApp } from "../Context/AppContextBase";
+import { notifyUser } from "../utils/browserCapabilities";
 
 export default function ForgotPasswordPage() {
+  const { appConfig, resetPassword } = useApp();
+  const [email, setEmail] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleReset(event) {
+    event.preventDefault();
+    setLoading(true);
+    setSuccess(false);
+    setErrorMsg("");
+
+    try {
+      await resetPassword(email.trim());
+      setSuccess(true);
+      await notifyUser(appConfig.brand.name, "Password reset email sent.");
+    } catch (error) {
+      setErrorMsg(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-10 border border-slate-100">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Forgot Password</h1>
-          <p className="text-slate-500 mt-2">Reset your security credentials</p>
-        </div>
+    <div className="grid min-h-screen place-items-center bg-[#DEDED8] px-4 py-8 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+      <div className="w-full max-w-xl">
+        <Link
+          to="/"
+          className="mb-8 inline-flex rounded-lg bg-[#3D4461] px-5 py-3 font-black text-white shadow-lg"
+        >
+          {appConfig.brand.name}
+        </Link>
 
-        <form className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">New Password</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 border focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm New Password</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 border focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Mobile Number (xxxxxxx94)</label>
-            <input type="tel" placeholder="Enter linked mobile number" className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 border focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">One-Time Code (OTP)</label>
-            <div className="flex gap-2">
-              <input type="text" className="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 border text-center font-bold tracking-widest outline-none focus:ring-2 focus:ring-blue-500" placeholder="000000" />
-              <button type="button" className="px-4 bg-slate-100 rounded-xl text-blue-600 font-bold text-xs hover:bg-slate-200 transition-colors">Resend</button>
-            </div>
-          </div>
-
-          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95">
-            Reset Password
-          </button>
-
-          <p className="text-center">
-            <Link to="/" className="text-sm font-bold text-slate-400 hover:text-slate-600">Back to Login</Link>
+        <section className="rounded-lg bg-white p-6 shadow-xl dark:bg-slate-900 sm:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-[#5F675C] dark:text-slate-400">
+            Account recovery
           </p>
-        </form>
+          <h1 className="mt-2 text-3xl font-black tracking-tight">Forgot Password</h1>
+
+          <form onSubmit={handleReset} className="mt-8 space-y-5">
+            <label className="block">
+              <span className="mb-2 block text-sm font-black text-slate-700 dark:text-slate-200">
+                Email
+              </span>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="email@example.com"
+                required
+                className="field-input"
+              />
+            </label>
+
+            {errorMsg && (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
+                {errorMsg}
+              </p>
+            )}
+            {success && (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                Password reset email sent successfully.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#3D4461] px-8 py-3 font-black text-white shadow-lg transition hover:bg-[#30364f] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <MailCheck size={18} />
+              {loading ? "Sending..." : "Reset Password"}
+            </button>
+          </form>
+
+          <Link to="/" className="mt-6 inline-flex text-sm font-bold text-[#3D4461] hover:underline dark:text-white">
+            Back to Login
+          </Link>
+        </section>
       </div>
     </div>
   );

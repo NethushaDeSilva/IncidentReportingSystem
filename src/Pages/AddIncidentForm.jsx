@@ -13,8 +13,6 @@ const INCIDENT_TYPES = [
   "Other",
 ];
 
-const STATUS_OPTIONS = ["Open", "In Progress", "Resolved", "Closed"];
-
 export default function AddIncidentForm() {
   const [form, setForm] = useState({
     type: "",
@@ -103,7 +101,7 @@ export default function AddIncidentForm() {
 
         type: form.type || "",
         location: form.location || "",
-        status: "Pending",
+        status: "notAssigned",
 
         assigned: "",
 
