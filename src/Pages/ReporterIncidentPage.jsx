@@ -3,8 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { LocateFixed, RotateCcw, Send } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 import { useApp } from "../Context/AppContextBase";
+import { useDateTimeLimits } from "../hooks/useDateTimeLimits";
 import { createIncident } from "../services/incidentService";
 import { getCurrentPosition, notifyUser } from "../utils/browserCapabilities";
+import { clampDateTimeInputToNow, isFutureDateTimeInput } from "../utils/dateTimeLimits";
+import { optimizeCloudinaryImage } from "../utils/images";
 import ReporterLayout from "./ReporterLayout";
 
 const EMPTY_FORM = {
@@ -21,6 +24,7 @@ const EMPTY_FORM = {
 export default function ReportIncidentPage() {
   const navigate = useNavigate();
   const { appConfig, profile, user } = useApp();
+  const { currentDateTime } = useDateTimeLimits();
   const [form, setForm] = useState({
     ...EMPTY_FORM,
     name: profile?.fullName || "",
@@ -41,7 +45,11 @@ export default function ReportIncidentPage() {
   );
 
   function handleChange(event) {
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+    const value =
+      event.target.type === "datetime-local"
+        ? clampDateTimeInputToNow(event.target.value)
+        : event.target.value;
+    setForm((prev) => ({ ...prev, [event.target.name]: value }));
   }
 
   function handleImageChange(event) {
@@ -67,7 +75,7 @@ export default function ReportIncidentPage() {
       throw new Error(json.error?.message || "Image upload failed");
     }
 
-    return json.secure_url || "";
+    return optimizeCloudinaryImage(json.secure_url || "", 1200);
   }
 
   async function handleLocate() {
@@ -96,6 +104,9 @@ export default function ReportIncidentPage() {
 
     try {
       if (!user) throw new Error("You must be logged in to report an incident.");
+      if (isFutureDateTimeInput(form.dateTime)) {
+        throw new Error("Incident date and time cannot be in the future.");
+      }
 
       const uploadedUrls = [];
       for (const file of imageFiles) {
@@ -181,7 +192,13 @@ export default function ReportIncidentPage() {
             </Field>
 
             <Field label="Date and time">
-              <Input name="dateTime" type="datetime-local" value={form.dateTime} onChange={handleChange} />
+              <Input
+                name="dateTime"
+                type="datetime-local"
+                value={form.dateTime}
+                onChange={handleChange}
+                max={currentDateTime}
+              />
             </Field>
 
             <Field label="Location">
@@ -232,7 +249,15 @@ export default function ReportIncidentPage() {
                 {previews.length > 0 ? (
                   <div className="grid w-full grid-cols-2 gap-2">
                     {previews.map((preview) => (
-                      <img key={preview} src={preview} alt="Incident preview" className="h-24 w-full rounded-lg object-cover" />
+                      <img
+                        key={preview}
+                        src={preview}
+                        alt="Incident preview"
+                        width="320"
+                        height="180"
+                        decoding="async"
+                        className="h-24 w-full rounded-lg object-cover"
+                      />
                     ))}
                   </div>
                 ) : (

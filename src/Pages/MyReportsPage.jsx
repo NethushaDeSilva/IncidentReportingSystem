@@ -1,32 +1,46 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import IncidentColumnFilters from "../Components/IncidentColumnFilters";
+import PaginationControls from "../Components/PaginationControls";
 import ReporterStatusBadge from "../Components/ReporterStatusBadge";
 import { useApp } from "../Context/AppContextBase";
 import { useIncidents } from "../hooks/useIncidents";
+import { usePagination } from "../hooks/usePagination";
 import { formatDate } from "../utils/formatters";
+import {
+  DEFAULT_INCIDENT_FILTERS,
+  applyIncidentFilters,
+  getIncidentFilterOptions,
+} from "../utils/incidentFilters";
 import ReporterLayout from "./ReporterLayout";
 
 export default function MyReportsPage() {
   const { user } = useApp();
   const { incidents, loading } = useIncidents({ reporterId: user?.uid });
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [filters, setFilters] = useState(DEFAULT_INCIDENT_FILTERS);
+
+  function handleFilterChange(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
+  }
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return [...incidents]
+    const searched = [...incidents]
       .reverse()
       .filter((incident) => {
-        const matchesStatus = statusFilter === "All" || (incident.status || "notAssigned") === statusFilter;
-        const matchesSearch =
-          !needle ||
+        if (!needle) return true;
+        return (
           [incident.type, incident.location, incident.name, incident.incidentId, incident.description]
             .filter(Boolean)
-            .some((value) => value.toLowerCase().includes(needle));
-
-        return matchesStatus && matchesSearch;
+            .some((value) => value.toLowerCase().includes(needle))
+        );
       });
-  }, [incidents, search, statusFilter]);
+    return applyIncidentFilters(searched, filters);
+  }, [filters, incidents, search]);
+
+  const filterOptions = useMemo(() => getIncidentFilterOptions(incidents), [incidents]);
+  const pagination = usePagination(filtered, `${search}|${JSON.stringify(filters)}`);
 
   return (
     <ReporterLayout>
@@ -46,7 +60,7 @@ export default function MyReportsPage() {
         </Link>
       </header>
 
-      <section className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
+      <section className="mb-6 space-y-4">
         <input
           type="text"
           value={search}
@@ -55,22 +69,12 @@ export default function MyReportsPage() {
           className="field-input"
         />
 
-        <div className="grid grid-cols-2 gap-2 sm:flex">
-          {["All", "notAssigned", "In Progress", "Resolved"].map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setStatusFilter(status)}
-              className={`rounded-lg px-4 py-3 text-sm font-black transition ${
-                statusFilter === status
-                  ? "bg-[#3D4461] text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
+        <IncidentColumnFilters
+          filters={filters}
+          options={filterOptions}
+          onChange={handleFilterChange}
+          onReset={() => setFilters(DEFAULT_INCIDENT_FILTERS)}
+        />
       </section>
 
       <section className="overflow-hidden rounded-lg border border-white/60 bg-white shadow-xl dark:border-white/10 dark:bg-slate-900">
@@ -79,9 +83,9 @@ export default function MyReportsPage() {
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center font-bold text-slate-500">No reports found.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="max-h-[65vh] overflow-auto">
             <table className="w-full min-w-[780px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+              <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                 <tr>
                   <th className="px-5 py-4">Incident ID</th>
                   <th className="px-5 py-4">Incident Type</th>
@@ -93,7 +97,7 @@ export default function MyReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/10">
-                {filtered.map((incident) => (
+                {pagination.paginatedItems.map((incident) => (
                   <tr key={incident.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
                     <td className="px-5 py-4 font-mono text-xs text-slate-500">
                       {incident.incidentId || incident.id.slice(0, 8)}
@@ -120,6 +124,16 @@ export default function MyReportsPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && filtered.length > 0 && (
+          <PaginationControls
+            page={pagination.page}
+            pageCount={pagination.pageCount}
+            pageSize={pagination.pageSize}
+            totalItems={pagination.totalItems}
+            onPageChange={pagination.setPage}
+            onPageSizeChange={pagination.setPageSize}
+          />
         )}
       </section>
     </ReporterLayout>

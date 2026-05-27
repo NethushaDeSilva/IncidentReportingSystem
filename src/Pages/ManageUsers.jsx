@@ -19,7 +19,7 @@ export default function ManageUsers() {
     const needle = search.trim().toLowerCase();
     return users.filter((user) => {
       if (!needle) return true;
-      return [user.fullName, user.email, user.role, user.mobile, user.nic, user.status]
+      return [user.fullName, user.email, user.role, user.mobile, user.nic, user.status, user.responseUnitId]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(needle));
     });
@@ -35,13 +35,15 @@ export default function ManageUsers() {
     event.preventDefault();
     setSaving(true);
     const form = new FormData(event.currentTarget);
+    const role = form.get("role");
 
     try {
       await updateManagedUser(editing.id, {
         fullName: form.get("fullName"),
         email: form.get("email"),
         mobile: form.get("mobile"),
-        role: form.get("role"),
+        role,
+        responseUnitId: role === "paramedic" ? form.get("responseUnitId") || "" : "",
         status: form.get("status"),
       });
       await notifyUser(appConfig.brand.name, "User updated.");
@@ -80,12 +82,13 @@ export default function ManageUsers() {
         {error && <p className="mb-4 rounded-lg bg-rose-50 p-4 font-bold text-rose-700">{error}</p>}
 
         <div className="overflow-x-auto rounded-lg border border-slate-100 dark:border-white/10">
-          <table className="w-full min-w-[820px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
               <tr>
                 <th className="px-5 py-4">User ID</th>
                 <th className="px-5 py-4">Username</th>
                 <th className="px-5 py-4">Role</th>
+                <th className="px-5 py-4">Response Unit</th>
                 <th className="px-5 py-4">Email</th>
                 <th className="px-5 py-4">Status</th>
                 <th className="px-5 py-4 text-right">Actions</th>
@@ -94,13 +97,13 @@ export default function ManageUsers() {
             <tbody className="divide-y divide-slate-100 dark:divide-white/10">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="p-12 text-center font-bold text-slate-500">
+                  <td colSpan="7" className="p-12 text-center font-bold text-slate-500">
                     Loading users...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="p-12 text-center font-bold text-slate-500">
+                  <td colSpan="7" className="p-12 text-center font-bold text-slate-500">
                     No users found.
                   </td>
                 </tr>
@@ -111,6 +114,9 @@ export default function ManageUsers() {
                     <td className="px-5 py-4 font-black">{user.fullName || "-"}</td>
                     <td className="px-5 py-4">
                       <RoleBadge role={user.role} />
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
+                      {getResponseUnitName(user.responseUnitId, appConfig.responseUnits)}
                     </td>
                     <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.email || "-"}</td>
                     <td className="px-5 py-4 font-bold">{user.status || "Active"}</td>
@@ -146,6 +152,7 @@ export default function ManageUsers() {
 
       {editing && (
         <EditUserDialog
+          appConfig={appConfig}
           user={editing}
           saving={saving}
           onClose={() => setEditing(null)}
@@ -154,6 +161,11 @@ export default function ManageUsers() {
       )}
     </AdminLayout>
   );
+}
+
+function getResponseUnitName(unitId, responseUnits) {
+  if (!unitId) return "-";
+  return responseUnits.find((unit) => unit.id === unitId)?.name || unitId;
 }
 
 function RoleBadge({ role }) {
@@ -174,7 +186,9 @@ function RoleBadge({ role }) {
   );
 }
 
-function EditUserDialog({ onClose, onSubmit, saving, user }) {
+function EditUserDialog({ appConfig, onClose, onSubmit, saving, user }) {
+  const [role, setRole] = useState(normalizeRole(user.role));
+
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/50 p-4">
       <section className="w-full max-w-2xl rounded-lg bg-white p-5 shadow-2xl dark:bg-slate-900 sm:p-6">
@@ -197,7 +211,7 @@ function EditUserDialog({ onClose, onSubmit, saving, user }) {
               <input name="mobile" defaultValue={user.mobile || ""} className="field-input" />
             </Field>
             <Field label="Role">
-              <select name="role" defaultValue={normalizeRole(user.role)} className="field-input">
+              <select name="role" value={role} onChange={(event) => setRole(event.target.value)} className="field-input">
                 {ROLES.map((role) => (
                   <option key={role} value={role}>
                     {role[0].toUpperCase() + role.slice(1)}
@@ -205,6 +219,18 @@ function EditUserDialog({ onClose, onSubmit, saving, user }) {
                 ))}
               </select>
             </Field>
+            {role === "paramedic" && (
+              <Field label="Response Unit">
+                <select name="responseUnitId" defaultValue={user.responseUnitId || ""} className="field-input">
+                  <option value="">All assigned units</option>
+                  {appConfig.responseUnits.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <Field label="Status">
               <select name="status" defaultValue={user.status || "Active"} className="field-input">
                 <option value="Active">Active</option>

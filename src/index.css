@@ -1,5 +1,305 @@
 @import "tailwindcss";
 
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #deded8;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.field-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(203 213 225);
+  background: rgb(255 255 255 / 0.9);
+  padding: 0.75rem 1rem;
+  color: rgb(30 41 59);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.field-input::placeholder {
+  color: rgb(100 116 139);
+}
+
+.field-input:focus {
+  border-color: rgb(61 68 97 / 0.6);
+  box-shadow: 0 0 0 3px rgb(61 68 97 / 0.16);
+  outline: none;
+}
+
+.dark .field-input {
+  border-color: rgb(51 65 85);
+  background: rgb(15 23 42 / 0.75);
+  color: rgb(241 245 249);
+}
+
+.reporter-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(203 213 225);
+  background: rgb(255 255 255 / 0.9);
+  padding: 0.75rem 1.5rem;
+  color: rgb(51 65 85);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.reporter-input::placeholder {
+  color: rgb(100 116 139);
+}
+
+.reporter-input:focus {
+  border-color: rgb(61 68 97 / 0.45);
+  box-shadow: 0 0 0 3px rgb(61 68 97 / 0.16);
+  outline: none;
+}
+
+.dark .reporter-input {
+  border-color: rgb(51 65 85);
+  background: rgb(15 23 42 / 0.75);
+  color: rgb(241 245 249);
+}
+
+.error-screen {
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+.error-code-pill {
+  animation: error-soft-pop 620ms ease both;
+  letter-spacing: 0;
+}
+
+.error-illustration {
+  min-height: 430px;
+  position: relative;
+}
+
+.error-blob {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(0);
+  opacity: 0.95;
+}
+
+.error-blob-green {
+  inset: 6% auto auto 2%;
+  width: 72%;
+  height: 72%;
+  background: #7edda6;
+  animation: error-breathe 5s ease-in-out infinite;
+}
+
+.error-blob-blue {
+  inset: 14% 0 auto auto;
+  width: 54%;
+  height: 68%;
+  background: #20375e;
+  animation: error-breathe 5s ease-in-out infinite 500ms;
+}
+
+.error-device {
+  position: absolute;
+  inset: 18% 4% auto 8%;
+  z-index: 2;
+  animation: error-float 4s ease-in-out infinite;
+}
+
+.error-device-screen {
+  position: relative;
+  display: grid;
+  min-height: 250px;
+  place-items: center;
+  overflow: hidden;
+  border: 16px solid #26324c;
+  border-radius: 1.5rem;
+  background: #ffffff;
+  box-shadow: 0 28px 65px rgb(32 55 94 / 0.25);
+}
+
+.error-device-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 0%, rgb(126 221 166 / 0.1) 45%, transparent 62%);
+  animation: error-scan 3.6s ease-in-out infinite;
+}
+
+.error-warning-triangle {
+  position: absolute;
+  top: 30px;
+  color: #ef4b4b;
+  animation: error-soft-pop 720ms ease both;
+}
+
+.error-device-code {
+  position: relative;
+  z-index: 1;
+  max-width: 80%;
+  overflow-wrap: anywhere;
+  color: #ef4b4b;
+  font-size: clamp(2.4rem, 8vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.error-pulse-line {
+  position: absolute;
+  right: 28px;
+  bottom: 26px;
+  color: #4eaf84;
+  opacity: 0.75;
+  animation: error-pulse 1.9s ease-in-out infinite;
+}
+
+.error-device-stand {
+  width: 42%;
+  height: 82px;
+  margin: -8px auto 0;
+  border-bottom: 34px solid #26324c;
+  border-left: 24px solid transparent;
+  border-right: 24px solid transparent;
+}
+
+.error-floating-icon {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+  border: 6px solid #ffffff;
+  border-radius: 999px;
+  background: #ef4b4b;
+  color: white;
+  box-shadow: 0 18px 40px rgb(38 50 76 / 0.18);
+}
+
+.error-floating-icon-left {
+  top: 8%;
+  left: 0;
+  animation: error-float 3.7s ease-in-out infinite 200ms;
+}
+
+.error-floating-icon-right {
+  right: 2%;
+  bottom: 18%;
+  background: #4eaf84;
+  animation: error-float 4.2s ease-in-out infinite 700ms;
+}
+
+@keyframes error-soft-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes error-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes error-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes error-scan {
+  0% {
+    transform: translateX(-110%);
+  }
+  55%,
+  100% {
+    transform: translateX(110%);
+  }
+}
+
+@keyframes error-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 640px) {
+  .error-illustration {
+    min-height: 330px;
+  }
+
+  .error-device {
+    inset: 22% 0 auto 0;
+  }
+
+  .error-device-screen {
+    min-height: 190px;
+    border-width: 12px;
+  }
+
+  .error-warning-triangle {
+    top: 22px;
+  }
+
+  .error-device-code {
+    font-size: 3rem;
+  }
+
+  .error-floating-icon {
+    width: 72px;
+    height: 72px;
+    border-width: 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-code-pill,
+  .error-blob-green,
+  .error-blob-blue,
+  .error-device,
+  .error-device-screen::after,
+  .error-floating-icon,
+  .error-pulse-line,
+  .error-warning-triangle {
+    animation: none;
+  }
+}
+
 /* :root {
   --text: #6b6375;
   --text-h: #08060d;

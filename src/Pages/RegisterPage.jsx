@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import { useApp } from "../Context/AppContextBase";
+import { useDateTimeLimits } from "../hooks/useDateTimeLimits";
 import { notifyUser } from "../utils/browserCapabilities";
+import { clampDateInputToToday, isFutureDateInput } from "../utils/dateTimeLimits";
+import { NIC_MAX_LENGTH, assertValidNic, limitNic } from "../utils/nic";
 
 const EMPTY_FORM = {
   fullName: "",
@@ -17,13 +20,20 @@ const EMPTY_FORM = {
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { appConfig, registerReporter } = useApp();
+  const { today } = useDateTimeLimits();
   const [form, setForm] = useState(EMPTY_FORM);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
   function handleChange(event) {
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+    const value =
+      event.target.type === "date"
+        ? clampDateInputToToday(event.target.value)
+        : event.target.name === "nic"
+          ? limitNic(event.target.value)
+          : event.target.value;
+    setForm((prev) => ({ ...prev, [event.target.name]: value }));
   }
 
   async function handleSubmit(event) {
@@ -33,6 +43,18 @@ export default function RegisterPage() {
 
     if (form.password !== form.confirmPassword) {
       setErrorMsg("Passwords do not match.");
+      return;
+    }
+
+    if (isFutureDateInput(form.dob)) {
+      setErrorMsg("Date of birth cannot be in the future.");
+      return;
+    }
+
+    try {
+      assertValidNic(form.nic);
+    } catch (error) {
+      setErrorMsg(error.message);
       return;
     }
 
@@ -84,10 +106,10 @@ export default function RegisterPage() {
               <Input name="mobile" type="tel" value={form.mobile} onChange={handleChange} autoComplete="tel" />
             </Field>
             <Field label="DOB (Date of Birth)">
-              <Input name="dob" type="date" value={form.dob} onChange={handleChange} />
+              <Input name="dob" type="date" value={form.dob} onChange={handleChange} max={today} />
             </Field>
             <Field label="NIC / Passport number">
-              <Input name="nic" value={form.nic} onChange={handleChange} />
+              <Input name="nic" value={form.nic} onChange={handleChange} maxLength={NIC_MAX_LENGTH} />
             </Field>
           </div>
 

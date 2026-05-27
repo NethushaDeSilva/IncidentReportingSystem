@@ -3,6 +3,7 @@ import ReporterStatusBadge from "../Components/ReporterStatusBadge";
 import { useApp } from "../Context/AppContextBase";
 import { useIncidents } from "../hooks/useIncidents";
 import { formatDateTime } from "../utils/formatters";
+import { optimizeCloudinaryImage } from "../utils/images";
 import ReporterLayout from "./ReporterLayout";
 
 export default function ReporterIncidentDetails() {
@@ -98,9 +99,13 @@ export default function ReporterIncidentDetails() {
                   {images.map((imageUrl) => (
                     <img
                       key={imageUrl}
-                      src={imageUrl}
+                      src={optimizeCloudinaryImage(imageUrl)}
                       alt="Incident evidence"
-                      className="w-full rounded-lg border border-slate-100 object-cover shadow-md dark:border-white/10"
+                      width="680"
+                      height="510"
+                      loading="lazy"
+                      decoding="async"
+                      className="aspect-[4/3] w-full rounded-lg border border-slate-100 object-cover shadow-md dark:border-white/10"
                     />
                   ))}
                 </div>

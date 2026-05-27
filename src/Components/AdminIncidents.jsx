@@ -1,33 +1,53 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Edit, Eye, Trash2, X } from "lucide-react";
+import IncidentColumnFilters from "./IncidentColumnFilters";
+import PaginationControls from "./PaginationControls";
 import ReporterStatusBadge from "./ReporterStatusBadge";
 import { useApp } from "../Context/AppContextBase";
 import { useIncidents } from "../hooks/useIncidents";
+import { usePagination } from "../hooks/usePagination";
 import { useUsers } from "../hooks/useUsers";
 import { deleteIncident, updateIncident } from "../services/incidentService";
 import { notifyUser } from "../utils/browserCapabilities";
 import { formatDate } from "../utils/formatters";
+import {
+  DEFAULT_INCIDENT_FILTERS,
+  applyIncidentFilters,
+  getIncidentFilterOptions,
+} from "../utils/incidentFilters";
 
 export default function AdminIncidentsTable({ limit }) {
   const { appConfig } = useApp();
   const { incidents, loading } = useIncidents();
   const { dispatchers } = useUsers();
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState(DEFAULT_INCIDENT_FILTERS);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  function handleFilterChange(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
+  }
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
     const source = limit ? incidents.slice(0, limit) : incidents;
 
-    return source.filter((incident) => {
+    const searched = source.filter((incident) => {
       if (!needle) return true;
       return [incident.incidentId, incident.type, incident.location, incident.status, incident.name]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(needle));
     });
-  }, [incidents, limit, search]);
+    return applyIncidentFilters(searched, filters);
+  }, [filters, incidents, limit, search]);
+
+  const filterOptions = useMemo(() => {
+    const source = limit ? incidents.slice(0, limit) : incidents;
+    return getIncidentFilterOptions(source);
+  }, [incidents, limit]);
+  const pagination = usePagination(filtered, `${search}|${JSON.stringify(filters)}`);
 
   async function handleDelete(incident) {
     if (!window.confirm(`Delete ${incident.incidentId || incident.id}?`)) return;
@@ -70,16 +90,24 @@ export default function AdminIncidentsTable({ limit }) {
 
   return (
     <div className="space-y-4">
-      <input
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search"
-        className="field-input"
-      />
+      <div className="space-y-4">
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search"
+          className="field-input"
+        />
+        <IncidentColumnFilters
+          filters={filters}
+          options={filterOptions}
+          onChange={handleFilterChange}
+          onReset={() => setFilters(DEFAULT_INCIDENT_FILTERS)}
+        />
+      </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-100 bg-white dark:border-white/10 dark:bg-slate-900">
+      <div className="max-h-[65vh] overflow-auto rounded-lg border border-slate-100 bg-white dark:border-white/10 dark:bg-slate-900">
         <table className="w-full min-w-[900px] text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+          <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
             <tr>
               <th className="px-5 py-4">Incident ID</th>
               <th className="px-5 py-4">Incident Type</th>
@@ -105,7 +133,7 @@ export default function AdminIncidentsTable({ limit }) {
                 </td>
               </tr>
             ) : (
-              filtered.map((incident) => (
+              pagination.paginatedItems.map((incident) => (
                 <tr key={incident.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
                   <td className="px-5 py-4 font-mono text-xs text-slate-500">
                     {incident.incidentId || incident.id.slice(0, 8)}
@@ -141,6 +169,16 @@ export default function AdminIncidentsTable({ limit }) {
           </tbody>
         </table>
       </div>
+      {!loading && filtered.length > 0 && (
+        <PaginationControls
+          page={pagination.page}
+          pageCount={pagination.pageCount}
+          pageSize={pagination.pageSize}
+          totalItems={pagination.totalItems}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
+        />
+      )}
 
       {editing && (
         <EditDialog

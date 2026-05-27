@@ -2,6 +2,7 @@ import { useState } from "react";
 import { db, auth } from "../firebase";
 
 import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { optimizeCloudinaryImage } from "../utils/images";
 
 const INCIDENT_TYPES = [
   "Fire",
@@ -60,7 +61,7 @@ export default function AddIncidentForm() {
 
       const resData = await response.json();
 
-      return resData.secure_url;
+      return optimizeCloudinaryImage(resData.secure_url, 1200);
 
     } catch (error) {
       console.error("Cloudinary Upload Error:", error);

@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import ReporterStatusBadge from "../Components/ReporterStatusBadge";
 import { useIncidents } from "../hooks/useIncidents";
 import { formatDateTime } from "../utils/formatters";
+import { optimizeCloudinaryImage } from "../utils/images";
 import AdminLayout from "./AdminLayout";
 import DispatcherLayout from "./DispatcherLayout";
 
@@ -116,9 +117,13 @@ export default function IncidentDetailsPage({ role = "admin" }) {
                   {images.map((imageUrl) => (
                     <img
                       key={imageUrl}
-                      src={imageUrl}
+                      src={optimizeCloudinaryImage(imageUrl)}
                       alt="Incident evidence"
-                      className="w-full rounded-lg border border-slate-100 object-cover shadow-md dark:border-white/10"
+                      width="680"
+                      height="510"
+                      loading="lazy"
+                      decoding="async"
+                      className="aspect-[4/3] w-full rounded-lg border border-slate-100 object-cover shadow-md dark:border-white/10"
                     />
                   ))}
                 </div>

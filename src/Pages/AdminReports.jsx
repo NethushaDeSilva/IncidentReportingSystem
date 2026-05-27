@@ -1,22 +1,36 @@
 import { useMemo, useState } from "react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import IncidentColumnFilters from "../Components/IncidentColumnFilters";
+import PaginationControls from "../Components/PaginationControls";
 import ReporterStatusBadge from "../Components/ReporterStatusBadge";
+import { useDateTimeLimits } from "../hooks/useDateTimeLimits";
 import { useIncidents } from "../hooks/useIncidents";
+import { usePagination } from "../hooks/usePagination";
+import { clampDateInputToToday } from "../utils/dateTimeLimits";
 import { formatDate, getIncidentDate, sortNewestFirst } from "../utils/formatters";
+import {
+  DEFAULT_INCIDENT_FILTERS,
+  applyIncidentFilters,
+  getIncidentFilterOptions,
+} from "../utils/incidentFilters";
 import AdminLayout from "./AdminLayout";
 
 export default function AdminReports() {
   const { incidents, loading } = useIncidents();
+  const { today } = useDateTimeLimits();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOption, setSortOption] = useState("date");
+  const [filters, setFilters] = useState(DEFAULT_INCIDENT_FILTERS);
+
+  function handleFilterChange(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
+  }
 
   const filteredIncidents = useMemo(() => {
     const start = startDate ? new Date(`${startDate}T00:00:00`) : null;
     const end = endDate ? new Date(`${endDate}T23:59:59`) : null;
 
-    return incidents
+    const dateRangeFiltered = incidents
       .filter((incident) => {
         const incidentDate = getIncidentDate(incident);
         if (!incidentDate) return true;
@@ -24,14 +38,34 @@ export default function AdminReports() {
         if (end && incidentDate > end) return false;
         return true;
       })
+
+    return applyIncidentFilters(dateRangeFiltered, filters)
       .sort((a, b) => {
         if (sortOption === "type") return (a.type || "").localeCompare(b.type || "");
         if (sortOption === "location") return (a.location || "").localeCompare(b.location || "");
         return sortNewestFirst(a, b);
-      });
-  }, [endDate, incidents, sortOption, startDate]);
+    });
+  }, [endDate, filters, incidents, sortOption, startDate]);
 
-  function downloadPDF() {
+  const filterOptions = useMemo(() => getIncidentFilterOptions(incidents), [incidents]);
+  const pagination = usePagination(
+    filteredIncidents,
+    `${startDate}|${endDate}|${sortOption}|${JSON.stringify(filters)}`
+  );
+
+  function handleStartDateChange(event) {
+    setStartDate(clampDateInputToToday(event.target.value));
+  }
+
+  function handleEndDateChange(event) {
+    setEndDate(clampDateInputToToday(event.target.value));
+  }
+
+  async function downloadPDF() {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text("Health LINK Incident Report", 14, 20);
@@ -65,12 +99,12 @@ export default function AdminReports() {
       </header>
 
       <section className="mb-6 rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900 sm:p-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-4">
           <Field label="Start Date">
-            <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="field-input" />
+            <input type="date" value={startDate} onChange={handleStartDateChange} max={today} className="field-input" />
           </Field>
           <Field label="End Date">
-            <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="field-input" />
+            <input type="date" value={endDate} onChange={handleEndDateChange} max={today} className="field-input" />
           </Field>
           <Field label="Sort By">
             <select value={sortOption} onChange={(event) => setSortOption(event.target.value)} className="field-input">
@@ -89,6 +123,12 @@ export default function AdminReports() {
             </button>
           </div>
         </div>
+        <IncidentColumnFilters
+          filters={filters}
+          options={filterOptions}
+          onChange={handleFilterChange}
+          onReset={() => setFilters(DEFAULT_INCIDENT_FILTERS)}
+        />
       </section>
 
       <section className="overflow-hidden rounded-lg border border-white/60 bg-white shadow-xl dark:border-white/10 dark:bg-slate-900">
@@ -97,9 +137,9 @@ export default function AdminReports() {
         ) : filteredIncidents.length === 0 ? (
           <div className="p-12 text-center font-bold text-slate-500">No incidents found.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="max-h-[65vh] overflow-auto">
             <table className="w-full min-w-[780px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+              <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                 <tr>
                   <th className="px-5 py-4">Incident ID</th>
                   <th className="px-5 py-4">Incident Type</th>
@@ -110,7 +150,7 @@ export default function AdminReports() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/10">
-                {filteredIncidents.map((incident) => (
+                {pagination.paginatedItems.map((incident) => (
                   <tr key={incident.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
                     <td className="px-5 py-4 font-mono text-xs text-slate-500">
                       {incident.incidentId || incident.id.slice(0, 8)}
@@ -129,6 +169,16 @@ export default function AdminReports() {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && filteredIncidents.length > 0 && (
+          <PaginationControls
+            page={pagination.page}
+            pageCount={pagination.pageCount}
+            pageSize={pagination.pageSize}
+            totalItems={pagination.totalItems}
+            onPageChange={pagination.setPage}
+            onPageSizeChange={pagination.setPageSize}
+          />
         )}
       </section>
     </AdminLayout>

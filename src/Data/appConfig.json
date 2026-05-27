@@ -1,0 +1,66 @@
+{
+  "brand": {
+    "name": "Health LINK",
+    "tagline": "Incident reporting and response coordination",
+    "supportPhone": "+94 11 555 0140",
+    "emergencyPhone": "119"
+  },
+  "incidentTypes": [
+    "Cardiac Arrest",
+    "Medical Emergency",
+    "Traffic Accident",
+    "Fire",
+    "Workplace Hazard",
+    "Natural Disaster",
+    "Public Safety",
+    "Other"
+  ],
+  "priorities": ["Low", "Medium", "High", "Critical"],
+  "statuses": ["notAssigned", "Open", "In Progress", "Resolved", "Closed"],
+  "responseUnits": [
+    {
+      "id": "unit-amb-01",
+      "name": "Ambulance Unit 01",
+      "type": "Ambulance",
+      "base": "Colombo General Hospital",
+      "latitude": 6.9271,
+      "longitude": 79.8612
+    },
+    {
+      "id": "unit-med-02",
+      "name": "Medical Unit 02",
+      "type": "Medical",
+      "base": "Moratuwa Medical Center",
+      "latitude": 6.773,
+      "longitude": 79.8816
+    },
+    {
+      "id": "unit-fire-03",
+      "name": "Fire Response 03",
+      "type": "Fire",
+      "base": "Dehiwala Fire Station",
+      "latitude": 6.8513,
+      "longitude": 79.8656
+    },
+    {
+      "id": "unit-res-04",
+      "name": "Rescue Unit 04",
+      "type": "Rescue",
+      "base": "Katubedda Response Point",
+      "latitude": 6.7954,
+      "longitude": 79.8997
+    },
+    {
+      "id": "unit-pol-05",
+      "name": "Safety Patrol 05",
+      "type": "Police",
+      "base": "Mount Lavinia Station",
+      "latitude": 6.8301,
+      "longitude": 79.8801
+    }
+  ],
+  "externalApi": {
+    "label": "Firebase JavaScript SDK",
+    "url": "https://api.github.com/repos/firebase/firebase-js-sdk/releases/latest"
+  }
+}

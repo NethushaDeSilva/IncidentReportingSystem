@@ -1,17 +1,40 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye } from "lucide-react";
 import SummaryCard from "../Components/SummaryCard";
 import ReporterStatusBadge from "../Components/ReporterStatusBadge";
 import { useApp } from "../Context/AppContextBase";
 import { useIncidents } from "../hooks/useIncidents";
+import { assignIncident } from "../services/incidentService";
+import { notifyUser } from "../utils/browserCapabilities";
 import { formatDate, isActiveIncident, isHighPriority } from "../utils/formatters";
 import DispatcherLayout from "./DispatcherLayout";
 
 export default function DispatcherDashboard() {
-  const { profile } = useApp();
-  const { incidents, loading, stats } = useIncidents({ priorityFirst: true });
-  const priorityIncidents = incidents.filter((incident) => isActiveIncident(incident) && isHighPriority(incident)).slice(0, 5);
-  
+  const { appConfig, profile, user } = useApp();
+  const { error, incidents, loading, stats } = useIncidents({ priorityFirst: true });
+  const [selectedUnits, setSelectedUnits] = useState({});
+  const [assigningId, setAssigningId] = useState("");
+  const priorityIncidents = incidents.filter((incident) => isActiveIncident(incident) && isHighPriority(incident));
+
+  async function handleAssign(incident) {
+    const selectedUnitId = selectedUnits[incident.id] || incident.assignedUnitId || appConfig.responseUnits[0]?.id;
+    const unit = appConfig.responseUnits.find((item) => item.id === selectedUnitId);
+    if (!unit) return;
+
+    setAssigningId(incident.id);
+    try {
+      await assignIncident(incident.id, unit, {
+        id: user?.uid,
+        uid: user?.uid,
+        email: profile?.email || user?.email,
+      });
+      await notifyUser(appConfig.brand.name, `${incident.incidentId || "Incident"} assigned.`);
+    } finally {
+      setAssigningId("");
+    }
+  }
+
   return (
     <DispatcherLayout>
       <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
@@ -38,6 +61,8 @@ export default function DispatcherDashboard() {
         <SummaryCard title="High-priority Incidents" value={loading ? "..." : stats.highPriority} tone="warning" />
       </section>
 
+      {error && <p className="mb-6 rounded-lg bg-rose-50 p-4 font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
+
       <section className="overflow-hidden rounded-lg border border-white/60 bg-white shadow-xl dark:border-white/10 dark:bg-slate-900">
         <div className="border-b border-slate-100 px-5 py-4 dark:border-white/10">
           <h2 className="text-xl font-black">High-priority incidents</h2>
@@ -47,9 +72,9 @@ export default function DispatcherDashboard() {
         ) : priorityIncidents.length === 0 ? (
           <div className="p-12 text-center font-bold text-slate-500">No active high-priority incidents.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+          <div className="max-h-[58vh] overflow-auto">
+            <table className="w-full min-w-[1120px] text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                 <tr>
                   <th className="px-5 py-4">Incident ID</th>
                   <th className="px-5 py-4">Incident Type</th>
@@ -57,7 +82,9 @@ export default function DispatcherDashboard() {
                   <th className="px-5 py-4">Location</th>
                   <th className="px-5 py-4">Priority</th>
                   <th className="px-5 py-4 text-center">Status</th>
+                  <th className="px-5 py-4">Assign Unit</th>
                   <th className="px-5 py-4 text-center">View</th>
+                  <th className="px-5 py-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/10">
@@ -75,6 +102,21 @@ export default function DispatcherDashboard() {
                     <td className="px-5 py-4 text-center">
                       <ReporterStatusBadge status={incident.status} />
                     </td>
+                    <td className="px-5 py-4">
+                      <select
+                        value={selectedUnits[incident.id] || incident.assignedUnitId || appConfig.responseUnits[0]?.id || ""}
+                        onChange={(event) =>
+                          setSelectedUnits((prev) => ({ ...prev, [incident.id]: event.target.value }))
+                        }
+                        className="field-input min-w-56"
+                      >
+                        {appConfig.responseUnits.map((unit) => (
+                          <option key={unit.id} value={unit.id}>
+                            {unit.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="px-5 py-4 text-center">
                       <Link
                         to={`/dispatcher/incidents/${incident.id}`}
@@ -84,6 +126,16 @@ export default function DispatcherDashboard() {
                       >
                         <Eye size={17} />
                       </Link>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleAssign(incident)}
+                        disabled={assigningId === incident.id}
+                        className="rounded-lg bg-[#3D4461] px-5 py-2.5 font-black text-white shadow-lg transition hover:bg-[#30364f] disabled:opacity-60"
+                      >
+                        {assigningId === incident.id ? "..." : incident.assignedUserId ? "REASSIGN" : "ASSIGN"}
+                      </button>
                     </td>
                   </tr>
                 ))}

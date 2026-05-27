@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { RotateCcw, UserPlus } from "lucide-react";
 import { useApp } from "../Context/AppContextBase";
+import { useDateTimeLimits } from "../hooks/useDateTimeLimits";
 import { createManagedUser } from "../services/userService";
 import { notifyUser } from "../utils/browserCapabilities";
+import { clampDateInputToToday, isFutureDateInput } from "../utils/dateTimeLimits";
+import { NIC_MAX_LENGTH, limitNic } from "../utils/nic";
 import { ROLES } from "../utils/roles";
 import AdminLayout from "./AdminLayout";
 
@@ -14,18 +17,30 @@ const EMPTY_FORM = {
   role: "reporter",
   dob: "",
   nic: "",
+  responseUnitId: "",
   status: "Active",
 };
 
 export default function AddUser() {
   const { appConfig } = useApp();
+  const { today } = useDateTimeLimits();
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   function handleChange(event) {
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+    const value =
+      event.target.type === "date"
+        ? clampDateInputToToday(event.target.value)
+        : event.target.name === "nic"
+          ? limitNic(event.target.value)
+          : event.target.value;
+    setForm((prev) => ({
+      ...prev,
+      [event.target.name]: value,
+      ...(event.target.name === "role" && value !== "paramedic" ? { responseUnitId: "" } : {}),
+    }));
   }
 
   async function handleSubmit(event) {
@@ -35,6 +50,10 @@ export default function AddUser() {
     setErrorMsg("");
 
     try {
+      if (isFutureDateInput(form.dob)) {
+        throw new Error("Date of birth cannot be in the future.");
+      }
+
       await createManagedUser(form);
       setMessage("Registration Successful");
       setForm(EMPTY_FORM);
@@ -76,10 +95,10 @@ export default function AddUser() {
             <Input name="mobile" type="tel" value={form.mobile} onChange={handleChange} required={false} />
           </Field>
           <Field label="DOB (Date of Birth)">
-            <Input name="dob" type="date" value={form.dob} onChange={handleChange} required={false} />
+            <Input name="dob" type="date" value={form.dob} onChange={handleChange} max={today} required={false} />
           </Field>
           <Field label="NIC / Passport number">
-            <Input name="nic" value={form.nic} onChange={handleChange} required={false} />
+            <Input name="nic" value={form.nic} onChange={handleChange} maxLength={NIC_MAX_LENGTH} required={false} />
           </Field>
           <Field label="Role">
             <select name="role" value={form.role} onChange={handleChange} className="field-input">
@@ -90,6 +109,18 @@ export default function AddUser() {
               ))}
             </select>
           </Field>
+          {form.role === "paramedic" && (
+            <Field label="Response Unit">
+              <select name="responseUnitId" value={form.responseUnitId} onChange={handleChange} className="field-input">
+                <option value="">All assigned units</option>
+                {appConfig.responseUnits.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Status">
             <select name="status" value={form.status} onChange={handleChange} className="field-input">
               <option value="Active">Active</option>

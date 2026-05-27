@@ -1,0 +1,134 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function currentProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasRole(role) {
+      return signedIn()
+        && currentProfile().data.status != "Inactive"
+        && (
+          currentProfile().data.role == role
+          || (role == "admin" && currentProfile().data.role in ["Admin", "ADMIN"])
+          || (role == "dispatcher" && currentProfile().data.role in ["Dispatcher", "DISPATCHER"])
+          || (role == "paramedic" && currentProfile().data.role in ["Paramedic", "PARAMEDIC", "medic", "Medic"])
+          || (role == "reporter" && currentProfile().data.role in ["Reporter", "REPORTER"])
+        );
+    }
+
+    function isBootstrapAdmin() {
+      return signedIn() && request.auth.token.email == "adminsandun@healthlink.lk";
+    }
+
+    function hasAdminEmail() {
+      return signedIn()
+        && request.auth.token.email.matches("^admin.*@healthlink\\.lk$");
+    }
+
+    function hasDispatcherEmail() {
+      return signedIn()
+        && request.auth.token.email.matches("^dispatcher.*@healthlink\\.lk$");
+    }
+
+    function hasParamedicEmail() {
+      return signedIn()
+        && request.auth.token.email.matches("^paramedic.*@healthlink\\.lk$");
+    }
+
+    function hasHealthLinkEmail() {
+      return signedIn()
+        && request.auth.token.email.matches(".*@healthlink\\.lk$");
+    }
+
+    function hasOperationalProfile() {
+      return signedIn()
+        && currentProfile().data.status != "Inactive"
+        && currentProfile().data.status != "inactive"
+        && currentProfile().data.role in [
+          "admin",
+          "Admin",
+          "ADMIN",
+          "dispatcher",
+          "Dispatcher",
+          "DISPATCHER",
+          "paramedic",
+          "Paramedic",
+          "PARAMEDIC",
+          "medic",
+          "Medic"
+        ];
+    }
+
+    function isAdmin() {
+      return isBootstrapAdmin() || hasAdminEmail() || hasRole("admin");
+    }
+
+    function isDispatcher() {
+      return hasDispatcherEmail() || hasRole("dispatcher");
+    }
+
+    function isParamedic() {
+      return hasParamedicEmail() || hasRole("paramedic");
+    }
+
+    function canReadOperationalData() {
+      return isAdmin() || isDispatcher() || isParamedic() || hasOperationalProfile() || hasHealthLinkEmail();
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin() || isDispatcher();
+
+      allow create: if isAdmin()
+        || (
+          isOwner(userId)
+          && request.resource.data.role == "reporter"
+          && request.resource.data.status == "Active"
+        );
+
+      allow update: if isAdmin()
+        || (
+          isOwner(userId)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            "role",
+            "status",
+            "createdAt"
+          ])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /Incidents/{incidentId} {
+      allow get, list: if canReadOperationalData()
+        || (signedIn() && resource.data.reporterId == request.auth.uid)
+        || (signedIn() && resource.data.assignedUserId == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.reporterId == request.auth.uid;
+
+      allow update: if isAdmin()
+        || isDispatcher()
+        || isParamedic()
+        || hasOperationalProfile()
+        || hasHealthLinkEmail()
+        || (signedIn() && resource.data.reporterId == request.auth.uid);
+
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

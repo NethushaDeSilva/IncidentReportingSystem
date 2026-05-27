@@ -1,15 +1,19 @@
 import { useState } from "react";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
 import { Save, RotateCcw } from "lucide-react";
 import { useApp } from "../Context/AppContextBase";
 import { auth, db } from "../firebase";
+import { useDateTimeLimits } from "../hooks/useDateTimeLimits";
 import { notifyUser } from "../utils/browserCapabilities";
+import { clampDateInputToToday, isFutureDateInput } from "../utils/dateTimeLimits";
 import { initials } from "../utils/formatters";
+import { NIC_MAX_LENGTH, assertValidNic, limitNic } from "../utils/nic";
 import ReporterLayout from "./ReporterLayout";
 
 export default function ReporterProfilePage() {
   const { appConfig, profile, refreshProfile, user } = useApp();
+  const { today } = useDateTimeLimits();
   const [draft, setDraft] = useState(() => ({
     fullName: profile?.fullName || user?.displayName || "",
     mobile: profile?.mobile || "",
@@ -22,7 +26,13 @@ export default function ReporterProfilePage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   function handleChange(event) {
-    setDraft((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+    const value =
+      event.target.type === "date"
+        ? clampDateInputToToday(event.target.value)
+        : event.target.name === "nic"
+          ? limitNic(event.target.value)
+          : event.target.value;
+    setDraft((prev) => ({ ...prev, [event.target.name]: value }));
   }
 
   async function handleSubmit(event) {
@@ -34,19 +44,33 @@ export default function ReporterProfilePage() {
     setErrorMsg("");
 
     try {
+      if (isFutureDateInput(draft.dob)) {
+        throw new Error("Date of birth cannot be in the future.");
+      }
+      assertValidNic(draft.nic || "");
+
       await updateProfile(auth.currentUser, { displayName: draft.fullName });
+      const profileRef = doc(db, "users", user.uid);
+      const profileSnap = await getDoc(profileRef);
+      const editableProfile = {
+        fullName: draft.fullName,
+        mobile: draft.mobile,
+        dob: draft.dob,
+        nic: limitNic(draft.nic || ""),
+        email: draft.email || user.email,
+        updatedAt: serverTimestamp(),
+      };
+
       await setDoc(
-        doc(db, "users", user.uid),
-        {
-          fullName: draft.fullName,
-          mobile: draft.mobile,
-          dob: draft.dob,
-          nic: draft.nic,
-          email: draft.email || user.email,
-          role: "reporter",
-          status: profile?.status || "Active",
-          updatedAt: serverTimestamp(),
-        },
+        profileRef,
+        profileSnap.exists()
+          ? editableProfile
+          : {
+              ...editableProfile,
+              role: "reporter",
+              status: "Active",
+              createdAt: serverTimestamp(),
+            },
         { merge: true }
       );
       await refreshProfile();
@@ -101,10 +125,10 @@ export default function ReporterProfilePage() {
               <Input name="mobile" type="tel" value={draft.mobile} onChange={handleChange} />
             </Field>
             <Field label="DOB">
-              <Input name="dob" type="date" value={draft.dob} onChange={handleChange} required={false} />
+              <Input name="dob" type="date" value={draft.dob} onChange={handleChange} max={today} required={false} />
             </Field>
             <Field label="NIC / Passport number">
-              <Input name="nic" value={draft.nic} onChange={handleChange} required={false} />
+              <Input name="nic" value={draft.nic} onChange={handleChange} maxLength={NIC_MAX_LENGTH} required={false} />
             </Field>
           </div>
 
