@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Edit, Eye, Trash2, X } from "lucide-react";
+import { Edit, Trash2, X } from "lucide-react";
 import IncidentColumnFilters from "./IncidentColumnFilters";
 import PaginationControls from "./PaginationControls";
 import ReporterStatusBadge from "./ReporterStatusBadge";
@@ -152,9 +151,6 @@ export default function AdminIncidentsTable({ limit }) {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-2">
-                      <IconLink label="View" to={`/admin/incidents/${incident.id}`}>
-                        <Eye size={17} />
-                      </IconLink>
                       <IconButton label="Edit" onClick={() => setEditing(incident)}>
                         <Edit size={17} />
                       </IconButton>
@@ -191,19 +187,6 @@ export default function AdminIncidentsTable({ limit }) {
         />
       )}
     </div>
-  );
-}
-
-function IconLink({ children, label, to }) {
-  return (
-    <Link
-      to={to}
-      title={label}
-      aria-label={label}
-      className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
-    >
-      {children}
-    </Link>
   );
 }
 

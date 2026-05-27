@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Eye } from "lucide-react";
 import IncidentColumnFilters from "../Components/IncidentColumnFilters";
 import PaginationControls from "../Components/PaginationControls";
 import ReporterStatusBadge from "../Components/ReporterStatusBadge";
@@ -65,7 +63,7 @@ export default function AllIncidents() {
         </div>
 
         <div className="max-h-[65vh] overflow-auto rounded-lg border border-slate-100 dark:border-white/10">
-          <table className="w-full min-w-[820px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
               <tr>
                 <th className="px-5 py-4">Incident ID</th>
@@ -75,19 +73,18 @@ export default function AllIncidents() {
                 <th className="px-5 py-4">Priority</th>
                 <th className="px-5 py-4 text-center">Status</th>
                 <th className="px-5 py-4">Assigned Unit</th>
-                <th className="px-5 py-4 text-right">View</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/10">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="p-12 text-center font-bold text-slate-500">
+                  <td colSpan="7" className="p-12 text-center font-bold text-slate-500">
                     Loading incidents...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-12 text-center font-bold text-slate-500">
+                  <td colSpan="7" className="p-12 text-center font-bold text-slate-500">
                     No incidents found.
                   </td>
                 </tr>
@@ -108,18 +105,6 @@ export default function AllIncidents() {
                     </td>
                     <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
                       {incident.assigned || "notAssigned"}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end">
-                        <Link
-                          to={`/dispatcher/incidents/${incident.id}`}
-                          title="View"
-                          aria-label="View"
-                          className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
-                        >
-                          <Eye size={17} />
-                        </Link>
-                      </div>
                     </td>
                   </tr>
                 ))

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Eye } from "lucide-react";
 import IncidentColumnFilters from "../Components/IncidentColumnFilters";
 import PaginationControls from "../Components/PaginationControls";
 import ReporterStatusBadge from "../Components/ReporterStatusBadge";
@@ -112,12 +113,16 @@ export default function MyReportsPage() {
                       <ReporterStatusBadge status={incident.status} />
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <Link
-                        to={`/reporter/my-reports/${incident.id}`}
-                        className="font-black text-[#3D4461] hover:underline dark:text-white"
-                      >
-                        View
-                      </Link>
+                      <div className="flex justify-end">
+                        <Link
+                          to={`/reporter/my-reports/${incident.id}`}
+                          title="View report"
+                          aria-label="View report"
+                          className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+                        >
+                          <Eye size={17} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

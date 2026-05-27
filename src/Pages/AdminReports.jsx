@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Eye } from "lucide-react";
 import IncidentColumnFilters from "../Components/IncidentColumnFilters";
 import PaginationControls from "../Components/PaginationControls";
 import ReporterStatusBadge from "../Components/ReporterStatusBadge";
@@ -138,7 +140,7 @@ export default function AdminReports() {
           <div className="p-12 text-center font-bold text-slate-500">No incidents found.</div>
         ) : (
           <div className="max-h-[65vh] overflow-auto">
-            <table className="w-full min-w-[780px] text-left text-sm">
+            <table className="w-full min-w-[860px] text-left text-sm">
               <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                 <tr>
                   <th className="px-5 py-4">Incident ID</th>
@@ -147,6 +149,7 @@ export default function AdminReports() {
                   <th className="px-5 py-4">Location</th>
                   <th className="px-5 py-4">Priority</th>
                   <th className="px-5 py-4 text-center">Status</th>
+                  <th className="px-5 py-4 text-right">View</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/10">
@@ -163,6 +166,18 @@ export default function AdminReports() {
                     <td className="px-5 py-4 font-bold">{incident.priority || "Medium"}</td>
                     <td className="px-5 py-4 text-center">
                       <ReporterStatusBadge status={incident.status} />
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end">
+                        <Link
+                          to={`/admin/incidents/${incident.id}`}
+                          title="View report"
+                          aria-label="View report"
+                          className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+                        >
+                          <Eye size={17} />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
