@@ -19,11 +19,12 @@ import DispatcherLayout from "./DispatcherLayout";
 
 export default function AssignIncidents() {
   const { appConfig, profile, user } = useApp();
-  const { error, incidents, loading } = useIncidents({ activeOnly: true, priorityFirst: true });
+  const { error, incidents, loading, patchIncident, refreshIncidents } = useIncidents({ activeOnly: true, priorityFirst: true });
   const [selectedUnits, setSelectedUnits] = useState({});
   const [dispatcherPosition, setDispatcherPosition] = useState(null);
   const [locating, setLocating] = useState(false);
   const [assigningId, setAssigningId] = useState("");
+  const [assignmentError, setAssignmentError] = useState("");
   const [filters, setFilters] = useState(DEFAULT_INCIDENT_FILTERS);
 
   function handleFilterChange(key, value) {
@@ -56,14 +57,32 @@ export default function AssignIncidents() {
     const unit = appConfig.responseUnits.find((item) => item.id === selectedUnitId);
     if (!unit) return;
 
+    const dispatcherId = user?.uid || "";
+    const dispatcherEmail = profile?.email || user?.email || "";
+    const assignmentPreview = {
+      assigned: unit.name,
+      assignedUnitId: unit.id,
+      assignedUnitType: unit.type,
+      assignedUserId: dispatcherId,
+      assignedDispatcherId: dispatcherId,
+      assignedDispatcherEmail: dispatcherEmail,
+      status: "Open",
+    };
+
+    setAssignmentError("");
     setAssigningId(incident.id);
+    patchIncident(incident.id, assignmentPreview);
     try {
       await assignIncident(incident.id, unit, {
-        id: user?.uid,
-        uid: user?.uid,
-        email: profile?.email || user?.email,
+        id: dispatcherId,
+        uid: dispatcherId,
+        email: dispatcherEmail,
       });
-      await notifyUser(appConfig.brand.name, `${incident.incidentId || "Incident"} assigned.`);
+      notifyUser(appConfig.brand.name, `${incident.incidentId || "Incident"} assigned.`).catch(() => {});
+    } catch (assignmentError) {
+      console.error("Unable to assign incident:", assignmentError);
+      setAssignmentError("Could not assign this incident. Please try again.");
+      await refreshIncidents({ silent: true });
     } finally {
       setAssigningId("");
     }
@@ -109,6 +128,7 @@ export default function AssignIncidents() {
 
       <section className="overflow-hidden rounded-lg border border-white/60 bg-white shadow-xl dark:border-white/10 dark:bg-slate-900">
         {error && <p className="m-5 rounded-lg bg-rose-50 p-4 font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
+        {assignmentError && <p className="m-5 rounded-lg bg-rose-50 p-4 font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{assignmentError}</p>}
         {loading ? (
           <div className="p-12 text-center font-bold text-slate-500">Loading incidents...</div>
         ) : incidents.length === 0 ? (
@@ -189,7 +209,11 @@ export default function AssignIncidents() {
                               disabled={assigningId === incident.id}
                               className="rounded-lg bg-[#3D4461] px-5 py-2.5 font-black text-white shadow-lg hover:bg-[#30364f] disabled:opacity-60"
                             >
-                              {assigningId === incident.id ? "..." : "ASSIGN"}
+                              {assigningId === incident.id
+                                ? "..."
+                                : incident.assignedUserId || incident.assignedUnitId
+                                  ? "REASSIGN"
+                                  : "ASSIGN"}
                             </button>
                           </td>
                         </tr>

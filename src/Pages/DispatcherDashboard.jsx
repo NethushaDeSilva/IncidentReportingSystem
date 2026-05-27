@@ -12,9 +12,10 @@ import DispatcherLayout from "./DispatcherLayout";
 
 export default function DispatcherDashboard() {
   const { appConfig, profile, user } = useApp();
-  const { error, incidents, loading, stats } = useIncidents({ priorityFirst: true });
+  const { error, incidents, loading, patchIncident, refreshIncidents, stats } = useIncidents({ priorityFirst: true });
   const [selectedUnits, setSelectedUnits] = useState({});
   const [assigningId, setAssigningId] = useState("");
+  const [assignmentError, setAssignmentError] = useState("");
   const priorityIncidents = incidents.filter((incident) => isActiveIncident(incident) && isHighPriority(incident));
 
   async function handleAssign(incident) {
@@ -22,14 +23,32 @@ export default function DispatcherDashboard() {
     const unit = appConfig.responseUnits.find((item) => item.id === selectedUnitId);
     if (!unit) return;
 
+    const dispatcherId = user?.uid || "";
+    const dispatcherEmail = profile?.email || user?.email || "";
+    const assignmentPreview = {
+      assigned: unit.name,
+      assignedUnitId: unit.id,
+      assignedUnitType: unit.type,
+      assignedUserId: dispatcherId,
+      assignedDispatcherId: dispatcherId,
+      assignedDispatcherEmail: dispatcherEmail,
+      status: "Open",
+    };
+
+    setAssignmentError("");
     setAssigningId(incident.id);
+    patchIncident(incident.id, assignmentPreview);
     try {
       await assignIncident(incident.id, unit, {
-        id: user?.uid,
-        uid: user?.uid,
-        email: profile?.email || user?.email,
+        id: dispatcherId,
+        uid: dispatcherId,
+        email: dispatcherEmail,
       });
-      await notifyUser(appConfig.brand.name, `${incident.incidentId || "Incident"} assigned.`);
+      notifyUser(appConfig.brand.name, `${incident.incidentId || "Incident"} assigned.`).catch(() => {});
+    } catch (assignmentError) {
+      console.error("Unable to assign incident:", assignmentError);
+      setAssignmentError("Could not assign this incident. Please try again.");
+      await refreshIncidents({ silent: true });
     } finally {
       setAssigningId("");
     }
@@ -62,6 +81,7 @@ export default function DispatcherDashboard() {
       </section>
 
       {error && <p className="mb-6 rounded-lg bg-rose-50 p-4 font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
+      {assignmentError && <p className="mb-6 rounded-lg bg-rose-50 p-4 font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{assignmentError}</p>}
 
       <section className="overflow-hidden rounded-lg border border-white/60 bg-white shadow-xl dark:border-white/10 dark:bg-slate-900">
         <div className="border-b border-slate-100 px-5 py-4 dark:border-white/10">
