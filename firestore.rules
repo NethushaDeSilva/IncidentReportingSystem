@@ -45,9 +45,9 @@ service cloud.firestore {
         && request.auth.token.email.matches("^paramedic.*@healthlink\\.lk$");
     }
 
-    function hasHealthLinkEmail() {
+    function hasHealthLinkStaffEmail() {
       return signedIn()
-        && request.auth.token.email.matches(".*@healthlink\\.lk$");
+        && request.auth.token.email.matches("^(admin|dispatcher|paramedic|medic|ambulance).*@healthlink\\.lk$");
     }
 
     function hasOperationalProfile() {
@@ -82,7 +82,7 @@ service cloud.firestore {
     }
 
     function canReadOperationalData() {
-      return isAdmin() || isDispatcher() || isParamedic() || hasOperationalProfile() || hasHealthLinkEmail();
+      return isAdmin() || isDispatcher() || isParamedic() || hasOperationalProfile() || hasHealthLinkStaffEmail();
     }
 
     match /users/{userId} {
@@ -121,7 +121,7 @@ service cloud.firestore {
         || isDispatcher()
         || isParamedic()
         || hasOperationalProfile()
-        || hasHealthLinkEmail()
+        || hasHealthLinkStaffEmail()
         || (signedIn() && resource.data.reporterId == request.auth.uid);
 
       allow delete: if isAdmin();
