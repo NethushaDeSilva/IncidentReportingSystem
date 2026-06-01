@@ -18,28 +18,24 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   </React.StrictMode>
 );
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/service-worker.js").catch((error) => {
-      console.error("Service worker registration failed:", error);
-    });
-  });
-}
-
-if ("serviceWorker" in navigator && import.meta.env.DEV) {
-  navigator.serviceWorker
-    .getRegistrations()
-    .then((registrations) => registrations.forEach((registration) => registration.unregister()))
-    .catch((error) => {
-      console.error("Service worker cleanup failed:", error);
-    });
+function clearBrowserCaches() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+      .catch((error) => {
+        console.error("Service worker cleanup failed:", error);
+      });
+  }
 
   if ("caches" in window) {
     caches
       .keys()
-      .then((keys) => keys.forEach((key) => caches.delete(key)))
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
       .catch((error) => {
         console.error("Cache cleanup failed:", error);
       });
   }
 }
+
+window.addEventListener("load", clearBrowserCaches);
