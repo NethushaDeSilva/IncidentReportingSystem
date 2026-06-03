@@ -5,7 +5,8 @@ export function inferRoleFromEmail(email) {
   if (
     username.startsWith("paramedic") ||
     username.startsWith("medic") ||
-    username.startsWith("ambulance")
+    username.startsWith("ambulance") ||
+    username.startsWith("amb")
   ) {
     return "paramedic";
   }

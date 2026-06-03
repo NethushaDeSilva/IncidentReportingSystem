@@ -14,6 +14,10 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function hasAuthEmail() {
+      return signedIn() && request.auth.token.email != null;
+    }
+
     function hasProfile() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid));
@@ -31,33 +35,46 @@ service cloud.firestore {
           currentProfile().data.role == role
           || (role == "admin" && currentProfile().data.role in ["Admin", "ADMIN"])
           || (role == "dispatcher" && currentProfile().data.role in ["Dispatcher", "DISPATCHER"])
-          || (role == "paramedic" && currentProfile().data.role in ["Paramedic", "PARAMEDIC", "medic", "Medic"])
+          || (role == "paramedic" && currentProfile().data.role in [
+            "Paramedic",
+            "PARAMEDIC",
+            "medic",
+            "Medic",
+            "ambulance",
+            "Ambulance",
+            "AMBULANCE"
+          ])
           || (role == "reporter" && currentProfile().data.role in ["Reporter", "REPORTER"])
         );
     }
 
     function isBootstrapAdmin() {
-      return signedIn() && request.auth.token.email == "adminsandun@healthlink.lk";
+      return hasAuthEmail() && request.auth.token.email == "adminsandun@healthlink.lk";
     }
 
     function hasAdminEmail() {
-      return signedIn()
+      return hasAuthEmail()
         && request.auth.token.email.matches("^admin.*@healthlink\\.lk$");
     }
 
     function hasDispatcherEmail() {
-      return signedIn()
+      return hasAuthEmail()
         && request.auth.token.email.matches("^dispatcher.*@healthlink\\.lk$");
     }
 
     function hasParamedicEmail() {
-      return signedIn()
-        && request.auth.token.email.matches("^(paramedic|medic|ambulance).*@healthlink\\.lk$");
+      return hasAuthEmail()
+        && request.auth.token.email.matches("^(paramedic|medic|ambulance|amb).*@.*$");
     }
 
     function hasHealthLinkStaffEmail() {
-      return signedIn()
+      return hasAuthEmail()
         && request.auth.token.email.matches("^(admin|dispatcher|paramedic|medic|ambulance).*@healthlink\\.lk$");
+    }
+
+    function canSelfProvisionRole(role) {
+      return role == "reporter"
+        || (role == "paramedic" && hasParamedicEmail());
     }
 
     function hasOperationalProfile() {
@@ -73,7 +90,10 @@ service cloud.firestore {
           "Paramedic",
           "PARAMEDIC",
           "medic",
-          "Medic"
+          "Medic",
+          "ambulance",
+          "Ambulance",
+          "AMBULANCE"
         ];
     }
 
@@ -108,7 +128,7 @@ service cloud.firestore {
       allow create: if isAdmin()
         || (
           isOwner(userId)
-          && request.resource.data.role == "reporter"
+          && canSelfProvisionRole(request.resource.data.role)
           && request.resource.data.status == "Active"
         );
 

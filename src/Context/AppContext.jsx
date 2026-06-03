@@ -23,13 +23,14 @@ function getSystemTheme() {
 
 async function readUserProfile(user) {
   if (!user) return null;
-  const [{ db }, { doc, getDoc }] = await Promise.all([
+  const [{ db }, { doc, getDoc, serverTimestamp, setDoc }] = await Promise.all([
     import("../firebase"),
     import("firebase/firestore"),
   ]);
+  const profileRef = doc(db, "users", user.uid);
   let snap;
   try {
-    snap = await getDoc(doc(db, "users", user.uid));
+    snap = await getDoc(profileRef);
   } catch (error) {
     if (error?.code !== "permission-denied") throw error;
     console.warn("Using auth fallback profile because Firestore blocked the profile read.");
@@ -37,7 +38,9 @@ async function readUserProfile(user) {
   }
 
   if (!snap.exists()) {
-    return buildFallbackProfile(user);
+    const fallbackProfile = buildFallbackProfile(user);
+    await persistFallbackProfile(profileRef, fallbackProfile, setDoc, serverTimestamp);
+    return fallbackProfile;
   }
 
   return {
@@ -46,6 +49,22 @@ async function readUserProfile(user) {
     ...snap.data(),
     role: normalizeRole(snap.data().role),
   };
+}
+
+async function persistFallbackProfile(profileRef, fallbackProfile, setDoc, serverTimestamp) {
+  try {
+    await setDoc(profileRef, {
+      uid: fallbackProfile.uid,
+      fullName: fallbackProfile.fullName,
+      email: fallbackProfile.email,
+      role: fallbackProfile.role,
+      status: fallbackProfile.status,
+      profileSource: fallbackProfile.profileSource,
+      createdAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.warn("Using auth fallback profile because Firestore could not create the profile document.", error);
+  }
 }
 
 export function AppProvider({ children }) {
