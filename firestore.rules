@@ -14,9 +14,19 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function hasRole(role) {
+    function hasProfile() {
       return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasActiveProfile() {
+      return hasProfile()
         && currentProfile().data.status != "Inactive"
+        && currentProfile().data.status != "inactive";
+    }
+
+    function hasRole(role) {
+      return hasActiveProfile()
         && (
           currentProfile().data.role == role
           || (role == "admin" && currentProfile().data.role in ["Admin", "ADMIN"])
@@ -42,7 +52,7 @@ service cloud.firestore {
 
     function hasParamedicEmail() {
       return signedIn()
-        && request.auth.token.email.matches("^paramedic.*@healthlink\\.lk$");
+        && request.auth.token.email.matches("^(paramedic|medic|ambulance).*@healthlink\\.lk$");
     }
 
     function hasHealthLinkStaffEmail() {
@@ -51,9 +61,7 @@ service cloud.firestore {
     }
 
     function hasOperationalProfile() {
-      return signedIn()
-        && currentProfile().data.status != "Inactive"
-        && currentProfile().data.status != "inactive"
+      return hasActiveProfile()
         && currentProfile().data.role in [
           "admin",
           "Admin",
@@ -82,7 +90,15 @@ service cloud.firestore {
     }
 
     function canReadOperationalData() {
-      return isAdmin() || isDispatcher() || isParamedic() || hasOperationalProfile() || hasHealthLinkStaffEmail();
+      return isBootstrapAdmin()
+        || hasAdminEmail()
+        || hasDispatcherEmail()
+        || hasParamedicEmail()
+        || hasHealthLinkStaffEmail()
+        || hasRole("admin")
+        || hasRole("dispatcher")
+        || hasRole("paramedic")
+        || hasOperationalProfile();
     }
 
     match /users/{userId} {
