@@ -6,6 +6,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasAuthEmail() {
+      return signedIn() && request.auth.token.email != null;
+    }
+
+    function authEmail() {
+      return string(request.auth.token.email).lower();
+    }
+
     function isOwner(userId) {
       return signedIn() && request.auth.uid == userId;
     }
@@ -14,122 +22,109 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function hasAuthEmail() {
-      return signedIn() && request.auth.token.email != null;
-    }
-
     function hasProfile() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function profileRole() {
+      return string(currentProfile().data.role).lower();
+    }
+
+    function profileStatus() {
+      return string(currentProfile().data.status).lower();
+    }
+
     function hasActiveProfile() {
       return hasProfile()
-        && currentProfile().data.status != "Inactive"
-        && currentProfile().data.status != "inactive";
+        && profileStatus() == "active";
     }
 
     function hasRole(role) {
       return hasActiveProfile()
         && (
-          currentProfile().data.role == role
-          || (role == "admin" && currentProfile().data.role in ["Admin", "ADMIN"])
-          || (role == "dispatcher" && currentProfile().data.role in ["Dispatcher", "DISPATCHER"])
-          || (role == "paramedic" && currentProfile().data.role in [
-            "Paramedic",
-            "PARAMEDIC",
-            "medic",
-            "Medic",
-            "ambulance",
-            "Ambulance",
-            "AMBULANCE"
-          ])
-          || (role == "reporter" && currentProfile().data.role in ["Reporter", "REPORTER"])
+          profileRole() == role
+          || (role == "paramedic" && profileRole() in ["medic", "ambulance"])
         );
     }
 
     function isBootstrapAdmin() {
-      return hasAuthEmail() && request.auth.token.email == "adminsandun@healthlink.lk";
+      return hasAuthEmail()
+        && authEmail() == "adminsandun@healthlink.lk";
     }
 
     function hasAdminEmail() {
       return hasAuthEmail()
-        && request.auth.token.email.matches("^admin.*@healthlink\\.lk$");
+        && authEmail().matches("^admin.*@healthlink\\.lk$");
     }
 
     function hasDispatcherEmail() {
       return hasAuthEmail()
-        && request.auth.token.email.matches("^dispatcher.*@healthlink\\.lk$");
+        && authEmail().matches("^dispatcher.*@healthlink\\.lk$");
     }
 
     function hasParamedicEmail() {
       return hasAuthEmail()
-        && request.auth.token.email.matches("^(paramedic|medic|ambulance|amb).*@.*$");
+        && authEmail().matches("^(paramedic|medic|ambulance|amb).*@healthlink\\.lk$");
     }
 
     function hasHealthLinkStaffEmail() {
       return hasAuthEmail()
-        && request.auth.token.email.matches("^(admin|dispatcher|paramedic|medic|ambulance).*@healthlink\\.lk$");
+        && authEmail().matches("^(admin|dispatcher|paramedic|medic|ambulance|amb).*@healthlink\\.lk$");
     }
 
     function canSelfProvisionRole(role) {
-      return role == "reporter"
-        || (role == "paramedic" && hasParamedicEmail());
+      return string(role).lower() == "reporter"
+        || (string(role).lower() == "paramedic" && hasParamedicEmail());
     }
 
     function hasOperationalProfile() {
       return hasActiveProfile()
-        && currentProfile().data.role in [
+        && profileRole() in [
           "admin",
-          "Admin",
-          "ADMIN",
           "dispatcher",
-          "Dispatcher",
-          "DISPATCHER",
           "paramedic",
-          "Paramedic",
-          "PARAMEDIC",
           "medic",
-          "Medic",
-          "ambulance",
-          "Ambulance",
-          "AMBULANCE"
+          "ambulance"
         ];
     }
 
     function isAdmin() {
-      return isBootstrapAdmin() || hasAdminEmail() || hasRole("admin");
+      return isBootstrapAdmin()
+        || hasAdminEmail()
+        || hasRole("admin");
     }
 
     function isDispatcher() {
-      return hasDispatcherEmail() || hasRole("dispatcher");
+      return hasDispatcherEmail()
+        || hasRole("dispatcher");
     }
 
     function isParamedic() {
-      return hasParamedicEmail() || hasRole("paramedic");
+      return hasParamedicEmail()
+        || hasRole("paramedic");
     }
 
     function canReadOperationalData() {
-      return isBootstrapAdmin()
-        || hasAdminEmail()
-        || hasDispatcherEmail()
-        || hasParamedicEmail()
-        || hasHealthLinkStaffEmail()
-        || hasRole("admin")
-        || hasRole("dispatcher")
-        || hasRole("paramedic")
-        || hasOperationalProfile();
+      return isAdmin()
+        || isDispatcher()
+        || isParamedic()
+        || hasOperationalProfile()
+        || hasHealthLinkStaffEmail();
     }
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
+
       allow list: if isAdmin() || isDispatcher();
 
       allow create: if isAdmin()
         || (
           isOwner(userId)
+          && hasAuthEmail()
+          && string(request.resource.data.email).lower() == authEmail()
           && canSelfProvisionRole(request.resource.data.role)
-          && request.resource.data.status == "Active"
+          && string(request.resource.data.status).lower() == "active"
         );
 
       allow update: if isAdmin()
